@@ -1,0 +1,40 @@
+@page "/access"
+@using OpenBeerMenu.Services
+@inject AccessManagementService AccessManagementService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Access</PageTitle>
+
+<h3>Please Authorize To Continue</h3>
+<label>
+    Access Code:
+    <input type="text" @bind="_code"/>
+</label>
+<button class="btn btn-primary" @onclick="OnSubmitAsync">Authorize</button>
+<br/>
+<br/>
+<br/>
+<p>Got here by accident? Click <a class="text-blue-500 underline" href="/">here</a> to go back.</p>
+
+@code
+{
+    private const string OverviewUrl = "/manage/overview";
+    
+    private string _code;
+    
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    public string ReturnUrl { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (AccessManagementService.IsAuthorized)
+            NavigationManager.NavigateTo(ReturnUrl ?? OverviewUrl);
+    }
+
+    private async Task OnSubmitAsync()
+    {
+        if (await AccessManagementService.TryAuthorizeAsync(_code))
+            NavigationManager.NavigateTo(ReturnUrl ?? OverviewUrl);
+    }
+}

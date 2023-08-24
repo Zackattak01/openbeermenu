@@ -1,0 +1,26 @@
+@using OpenBeerMenu.Data.Entities
+@using OpenBeerMenu.Services
+@inject MenuInfoService MenuInfoService
+
+<div class="flex">
+    <MenuInfoForm @bind-Name="_name" @bind-Sections="_sections"/>
+    <div class="ml-auto mt-auto">
+        <button class="btn btn-primary" @onclick="CreateMenuAsync">Create Menu</button>
+    </div>
+</div>
+
+
+@code
+{
+    private string _name;
+    private IList<SectionInfo> _sections = new List<SectionInfo>();
+
+    private async Task CreateMenuAsync()
+    {
+        var menu = new MenuInfo(_name, _sections.ToList());
+        await MenuInfoService.CreateMenuAsync(menu);
+
+        _name = null;
+        _sections.Clear();
+    }
+}

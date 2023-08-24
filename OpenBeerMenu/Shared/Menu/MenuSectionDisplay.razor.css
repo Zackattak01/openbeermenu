@@ -1,0 +1,4 @@
+.menu-section {
+    break-inside: avoid;
+    break-after: avoid;
+}

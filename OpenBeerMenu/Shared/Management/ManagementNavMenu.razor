@@ -1,0 +1,39 @@
+@inject NavigationManager NavigationManager
+
+<ul class="space-y-6 lg:space-y-2 border-l border-zinc-600 text-xl">
+    @foreach (var item in _navItems)
+    {
+        <ManagementNavMenuItem Id="@item.ToLower()" IsSelected="@(item.ToLower() == _selectedId)" OnClick="OnNavigate">@item</ManagementNavMenuItem>
+    }
+    
+</ul>
+@code
+{
+    private string _selectedId = null;
+    
+    private List<string> _navItems = new()
+    {
+        "Overview",
+        "Beers",
+        "Sections",
+        "Menus",
+        "Settings"
+    };
+
+    private void OnNavigate(string id)
+    {
+        _selectedId = id;
+        NavigationManager.NavigateTo($"/manage/{id}");
+    }
+
+    protected override void OnInitialized()
+    {
+        var pageName = NavigationManager.Uri.Split('/').Last();
+        
+        foreach (var navItem in _navItems)
+        {
+            if (pageName == navItem.ToLower())
+                _selectedId = pageName;
+        }
+    }
+}

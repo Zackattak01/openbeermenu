@@ -1,0 +1,18 @@
+@using OpenBeerMenu.Data.Entities
+
+<div class="menu-item rounded-lg bg-zinc-900 mb-2 p-2 flex gap-4" style="height: @(ItemSize)px;">
+    <img src="@BeerInfo.ThumbnailUrl" class="inline aspect-square rounded-lg"/>
+    <div class="grid">
+        <h2 class="text-2xl">@BeerInfo.Name &#x2022; @BeerInfo.Style &#x2022; @BeerInfo.Abv% ABV</h2>
+        <p class="text-lg text-gray-300 truncate">@BeerInfo.Description</p>
+    </div>
+</div>
+
+@code
+{
+    [Parameter]
+    public BeerInfo BeerInfo { get; set; }
+    
+    [CascadingParameter(Name = "ItemSize")]
+    public int ItemSize { get; set; }
+}

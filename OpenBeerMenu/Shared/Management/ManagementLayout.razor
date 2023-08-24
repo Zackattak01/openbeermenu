@@ -1,0 +1,28 @@
+@using OpenBeerMenu.Services
+@inherits LayoutComponentBase
+@layout MainLayout
+@inject AccessManagementService AccessManagementService
+@inject NavigationManager NavigationManager
+
+
+<div class="flex gap-12">
+    <div class="mt-12 ml-4">
+        <ManagementNavMenu/>
+        <a class="btn btn-primary m-4 mr-6 absolute top-0 right-0" href="/?displayOnLoad=true">Display Menu</a>
+    </div>
+    <div class="mt-12 mb-4 w-full">
+        @if (AccessManagementService.IsAuthorized)
+        {
+            @Body
+        }
+    </div>
+</div>
+
+@code
+{
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AccessManagementService.IsAuthorized)
+            NavigationManager.NavigateTo($"/access?returnUrl={NavigationManager.Uri}");
+    }
+}

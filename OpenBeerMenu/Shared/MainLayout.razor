@@ -1,0 +1,31 @@
+﻿@using OpenBeerMenu.Services
+@inherits LayoutComponentBase
+@inject NavigationManager NavigationManager
+@inject SettingsService SettingsService
+
+<PageTitle>OpenBeerMenu</PageTitle>
+
+<div class="page h-screen">
+
+    <main class="h-screen">
+        <article class="content px-4 h-screen max-w-[100vw]">
+            @Body
+        </article>
+    </main>
+</div>
+
+@code
+{
+    private const string SetupRoute = "setup";
+    private const string SettingsRoute = "/manage/settings/";
+    
+    protected override async Task OnInitializedAsync()
+    {
+        if (NavigationManager.Uri.Split('/').LastOrDefault() != SetupRoute)
+        {
+            var settingsExist = await SettingsService.CheckSettingsExistAsync();
+            if (!settingsExist)
+                NavigationManager.NavigateTo(SettingsRoute + SetupRoute);
+        }
+    }
+}

@@ -1,0 +1,63 @@
+@page "/manage/menus"
+@using OpenBeerMenu.Data.Entities
+@using OpenBeerMenu.Services
+@using OpenBeerMenu.Types
+@inject MenuInfoService MenuInfoService
+
+<PageTitle>Menus</PageTitle>
+
+<div class="space-y-4">
+    <div class="bg-zinc-900 rounded-lg space-y-2 p-4 w-full">
+        <SearchBar @bind-Query="@_searchQuery"/>
+        <hr class="mx-2 rounded"/>
+        <Accordion>
+            <AccordionItem Id="new" Title="New Menu">
+                <NewMenuForm/>
+            </AccordionItem>
+        </Accordion>
+    </div>
+    <div class="bg-zinc-900 rounded-lg p-4 w-full">
+        <Accordion>
+            @* Using the name 'section' instead of 'info' makes the compiler die *@
+            @foreach (var info in GetMenusToDisplay())
+            {
+                <AccordionItem Id="@info.Id.ToString()" Title="@info.Name" Removeable="true" OnRemoved="OnMenuRemovedAsync">
+                    <EditableMenuInfoDisplay Info="info"/>
+                </AccordionItem>
+            }
+
+            
+        </Accordion>
+    </div>
+</div>
+
+
+@code
+{
+    private IReadOnlyList<MenuInfo> _menus = Array.Empty<MenuInfo>();
+    private string _searchQuery = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _menus = await MenuInfoService.GetMenusAsync();
+        
+        MenuInfoService.MenusUpdated += OnMenusUpdatedAsync;
+    }
+    
+    private IEnumerable<MenuInfo> GetMenusToDisplay() 
+        => string.IsNullOrWhiteSpace(_searchQuery) ? _menus.OrderBy(x => x.Id) : Search.Rank(_searchQuery, _menus, x => x.Name);
+
+    private async Task OnMenusUpdatedAsync()
+    {
+        _menus = await MenuInfoService.GetMenusAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+    
+    private async Task OnMenuRemovedAsync(string idStr)
+    {
+        if (!Guid.TryParse(idStr, out var id))
+            throw new ArgumentException("Menu id was not a guid!");
+
+        await MenuInfoService.RemoveMenuAsync(_menus.Single(x => x.Id == id));
+    }
+}

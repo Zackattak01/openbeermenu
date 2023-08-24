@@ -1,0 +1,21 @@
+@using OpenBeerMenu.Data.Entities
+
+<div class="bg-zinc-800 rounded-lg p-2 my-2 cursor-grab transition duration-150 hover:scale-x-[1.01] hover:scale-y-110">
+    <h3 class="text-xl select-none">@_beerInfo.Name</h3>
+</div>
+
+@code
+{
+    private BeerInfo _beerInfo;
+    
+    [CascadingParameter]
+    public object Data { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (Data is not BeerInfo info)
+            throw new InvalidOperationException("Data passed to a BeerInfo view was not the correct type!");
+        
+        _beerInfo = info;
+    }
+}

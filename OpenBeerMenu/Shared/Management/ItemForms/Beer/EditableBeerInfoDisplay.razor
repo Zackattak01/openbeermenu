@@ -1,0 +1,30 @@
+@using OpenBeerMenu.Data.Entities
+@using OpenBeerMenu.Services
+@inject BeerInfoService BeerInfoService
+
+<div class="mb-4 relative">
+    <BeerInfoForm @bind-Name="@Info.Name" @bind-Style="@Info.Style" @bind-ThumbnailUrl="@Info.ThumbnailUrl" @bind-Abv="@Info.Abv" @bind-Description="@Info.Description" PropertyChanged="PropertyChanged"/>
+</div>
+
+@code
+{
+    [CascadingParameter]
+    public AccordionItem Container { get; set; }
+    
+    [Parameter]
+    public BeerInfo Info { get; set; }
+    
+    [Parameter]
+    public EventCallback<BeerInfo> InfoChanged { get; set; }
+
+    private async Task PropertyChanged()
+    {
+        await InfoChanged.InvokeAsync(Info);
+    }
+    
+    private async Task DeleteBeerAsync()
+    {
+        await Container.ToggleOpenAsync();
+        await BeerInfoService.RemoveBeerAsync(Info);
+    }
+}

@@ -1,0 +1,100 @@
+@using OpenBeerMenu.Data.Entities
+@using OpenBeerMenu.Services
+@using OpenBeerMenu.Shared.Management.ItemForms.Section
+@inject MenuInfoService MenuInfoService
+@inject IJSRuntime JS
+@inject NavigationManager NavigationManager
+@inject SettingsService SettingsService
+
+<div class="mb-4 relative">
+    <MenuInfoForm @bind-Name="Info.Name" Sections="Info.Sections" SectionAdded="SectionAddedAsync" SectionRemoved="SectionRemovedAsync" SectionPositionsChanged="SectionPositionsChangedAsync" PropertyChanged="PropertyChanged"/>
+    <div class="absolute top-0 right-0 flex gap-2">
+        <span class="transition duration-300 @_opacityClass text-3xl text-green-500 align-middle">&#10003;</span>
+        <button class="btn btn-primary transition-[width] duration-300" @onclick="CopyUrlAsync">
+            Copy Display Url
+        </button>
+        
+        @if (!_isDefaultMenu)
+        {
+            <button class="btn btn-primary" @onclick="SetMenuDefaultAsync">Set As Default</button>
+        }
+    </div>
+</div>
+
+@code
+{
+    private string _opacityClass = "opacity-0";
+
+    private bool _isDefaultMenu = false;
+    
+    [CascadingParameter]
+    public AccordionItem Container { get; set; }
+    
+    [Parameter]
+    public MenuInfo Info { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isDefaultMenu = (await SettingsService.GetSettingsAsync()).DefaultMenu?.Id == Info.Id;
+        
+        SettingsService.SettingsUpdated += OnSettingsUpdated;
+    }
+
+    private async Task OnSettingsUpdated()
+    {
+        _isDefaultMenu = (await SettingsService.GetSettingsAsync()).DefaultMenu?.Id == Info.Id;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task PropertyChanged()
+    {
+        await MenuInfoService.UpdateMenuAsync(Info);
+    }
+
+    private async Task SectionAddedAsync(SectionInfo section)
+    {
+        await MenuInfoService.AddSectionToMenuAsync(Info, section);
+    }
+    
+    private async Task SectionRemovedAsync(SectionInfo section)
+    {
+        await MenuInfoService.RemoveSectionFromMenuAsync(Info, section);
+    }
+
+    private async Task SectionPositionsChangedAsync(IList<SectionInfo> sections)
+    {
+        await MenuInfoService.ReorderSectionsAsync(Info, sections);
+    }
+
+    private async Task CopyUrlAsync()
+    {
+        if (Uri.TryCreate(new Uri(NavigationManager.BaseUri), $"/?menuId={Info.Id}", out var uri))
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", uri.ToString());
+            _opacityClass = "opacity-100";
+
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(2500);
+                _opacityClass = "opacity-0";
+                await InvokeAsync(StateHasChanged);
+            });
+        }
+        
+    }
+
+    private async Task SetMenuDefaultAsync()
+    {
+        var settings = await SettingsService.GetSettingsAsync();
+        settings.DefaultMenu = Info;
+
+        await SettingsService.UpdateSettingsAsync(settings);
+    }
+
+    private async Task DeleteMenuAsync()
+    {
+        await Container.ToggleOpenAsync();
+        await MenuInfoService.RemoveMenuAsync(Info);
+    }
+
+}

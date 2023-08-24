@@ -1,0 +1,100 @@
+﻿@using Microsoft.AspNetCore.Components.Web
+@namespace OpenBeerMenu.Pages
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+<!DOCTYPE html>
+<html lang="en" class="h-screen bg-zinc-800 text-white font-medium">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <base href="~/"/>
+    @* <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css"/> *@
+    <link href="css/styles.css" rel="stylesheet"/>
+    <link href="css/site.css" rel="stylesheet"/>
+    <link href="OpenBeerMenu.styles.css" rel="stylesheet"/>
+    <component type="typeof(HeadOutlet)" render-mode="ServerPrerendered"/>
+</head>
+<body class="h-screen font-mono">
+@RenderBody()
+
+<div id="blazor-error-ui" class="text-black">
+    <environment include="Staging,Production">
+        An error has occurred. This application may no longer respond until reloaded.
+    </environment>
+    <environment include="Development">
+        An unhandled exception has occurred. See browser dev tools for details.
+    </environment>
+    <a href="" class="reload">Reload</a>
+    <a class="dismiss">🗙</a>
+</div>
+
+<script src="_framework/blazor.server.js"></script>
+<script>
+    let dotNetHelper = null;
+    function enterFullscreen() {
+      document.documentElement.requestFullscreen();
+    }
+
+    function setDotNetHelper(helper) {
+        dotNetHelper = helper;
+    }
+    
+    addEventListener('fullscreenchange', (event) => { 
+        if (dotNetHelper === null)
+        {
+            console.error('Fullscreen event was fired but the .NET runtime was not notified!');
+            return;
+        }
+
+        dotNetHelper.invokeMethodAsync('SetFullscreen', document.fullscreenElement !== null)
+    })
+    
+    function setContentHeight(elementId, isOpen) {
+        let element = document.getElementById(elementId);
+        
+        if (element === null)
+            return;
+        
+        if (isOpen)
+        {
+            let additionalHeight = 0;
+            for (let descendant of element.querySelectorAll("*")) {
+                if (descendant.attributes["resizeable-content"] !== undefined)
+                    additionalHeight += descendant.scrollHeight;
+            }
+            
+            element.style.maxHeight = (element.scrollHeight + additionalHeight) + "px";
+        }
+        else 
+            element.style.maxHeight = null;
+    }
+    
+    function focusElement(elementId) {
+        let element = document.getElementById(elementId);
+        element.focus();
+    }
+    
+    function calculateMenuItemImageSize(containerId, numOfItems) {
+        let container = document.getElementById(containerId);
+        
+        // get 80% of the total height available (2 cols)
+        let totalHeight = (container.getBoundingClientRect().height * 2 * 0.9);
+        // let height = (element.getBoundingClientRect().height * 2 * 0.8) / numOfItems;
+        
+        let headers = document.getElementsByName("section-header");
+        console.log("found " + headers.length)
+        
+        for (let header of headers) {
+            totalHeight -= header.offsetHeight;
+            console.log("removed " + header.offsetHeight)
+        }
+        
+        let heightPerItem = totalHeight / numOfItems;
+        
+        console.log("Returning " + heightPerItem)
+        
+        return heightPerItem;
+    }
+</script>
+</body>
+</html>

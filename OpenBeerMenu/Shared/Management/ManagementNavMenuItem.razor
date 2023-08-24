@@ -1,0 +1,26 @@
+
+<li>
+    <button @onclick="() => OnClick.InvokeAsync(Id)" class="@ClassList">@ChildContent</button>
+</li>
+
+
+@code
+{
+    private const string UnselectedClassList = "block border-l pl-4 -ml-px border-transparent hover:border-zinc-100 text-zinc-300 hover:text-white";
+    private const string SelectedClassList = "block border-l pl-4 -ml-px text-green-600 border-current font-semibold";
+
+
+    private string ClassList => IsSelected ? SelectedClassList : UnselectedClassList;
+    
+    [Parameter]
+    public string Id { get; set; }
+    
+    [Parameter]
+    public bool IsSelected { get; set; }
+    
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+    
+    [Parameter]
+    public EventCallback<string> OnClick { get; set; }
+}

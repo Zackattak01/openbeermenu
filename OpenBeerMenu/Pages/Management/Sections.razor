@@ -1,0 +1,62 @@
+@page "/manage/sections"
+@using OpenBeerMenu.Data.Entities
+@using OpenBeerMenu.Services
+@using OpenBeerMenu.Types
+@inject SectionInfoService SectionInfoService
+
+<PageTitle>Sections</PageTitle>
+
+<div class="space-y-4">
+    <div class="bg-zinc-900 rounded-lg space-y-2 p-4 w-full">
+        <SearchBar @bind-Query="@_searchQuery"/>
+        <hr class="mx-2 rounded"/>
+        <Accordion>
+            <AccordionItem Id="new" Title="New Section">
+                <NewSectionForm/>
+            </AccordionItem>
+        </Accordion>
+    </div>
+
+    <div class="bg-zinc-900 rounded-lg p-4 w-full">
+        <Accordion>
+            @* Using the name 'info' because 'section' makes the compiler die *@
+            @foreach (var info in GetSectionsToDisplay())
+            {
+                <AccordionItem Id="@info.Id.ToString()" Title="@info.Name" Removeable="true" OnRemoved="OnSectionRemovedAsync">
+                    <EditableSectionInfoDisplay Info="info"/>
+                </AccordionItem>
+            }
+        </Accordion>
+    </div>
+</div>
+
+@code
+{
+    private IReadOnlyList<SectionInfo> _sections = Array.Empty<SectionInfo>();
+    private string _searchQuery = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _sections = await SectionInfoService.GetSectionsAsync();
+        
+        SectionInfoService.SectionsUpdated += SectionsUpdatedAsync;
+    }
+    
+    private IEnumerable<SectionInfo> GetSectionsToDisplay() 
+        => string.IsNullOrWhiteSpace(_searchQuery) ? _sections.OrderBy(x => x.Id) : Search.Rank(_searchQuery, _sections, x => x.Name);
+
+    private async Task SectionsUpdatedAsync()
+    {
+        _sections = await SectionInfoService.GetSectionsAsync();
+        
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnSectionRemovedAsync(string idStr)
+    {
+        if (!Guid.TryParse(idStr, out var id))
+            throw new ArgumentException("Section id was not a guid!");
+
+        await SectionInfoService.RemoveSectionAsync(_sections.Single(x => x.Id == id));
+    }
+}

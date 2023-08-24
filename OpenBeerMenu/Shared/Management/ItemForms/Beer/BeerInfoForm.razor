@@ -1,0 +1,204 @@
+@using OpenBeerMenu.Services
+@inject IJSRuntime JS
+@inject BeerStyleService StyleService
+@inject ImageService ImageService
+
+<div class="grow">
+    <div class="flex place-items-end gap-4">
+        <div>
+            <label>
+                <ImageUpload PlaceholderUrl="@ThumbnailUrl" OnChange="OnThumbnailUrlChanged"></ImageUpload>
+            </label>
+        </div>
+        <div>
+            <label>
+                Name:
+                <input type="text" value="@Name" @onchange="OnNameChanged"/>
+            </label>
+        </div>
+        <div>
+            <label>
+                Style:
+                @if (!_isNewStyleMode)
+                {
+                    <select class="@SelectClassString" @onchange="OnStyleChanged">
+                        @if (Style is null)
+                        {
+                            <option class="hidden" disabled value selected>Select...</option>
+                        }
+                        @if (_globalBeerStyles != null)
+                        {
+                            foreach (var style in _globalBeerStyles)
+                            {
+
+                                if (Style == style)
+                                {
+                                    <option selected value="@style">@style</option>
+                                }
+                                else
+                                {
+                                    <option value="@style">@style</option>
+                                }
+                            }
+
+                        }
+
+                        <option value="@NewStyleSelectionValue">New Style...</option>
+                    </select>
+                }
+                else
+                {
+                    <input id="@NewStyleInputId" type="text" value="@Style" @onchange="@OnStyleChanged"/>
+                }
+            </label>
+        </div>
+        <div>
+            <label>ABV:
+                <input class="w-[5ch]" type="number" onfocus="if (this.value === '0') this.value = ''" min="0" step="0.1" value="@Abv" @onchange="OnAbvChanged"/>%
+            </label>
+        </div>
+    </div>
+    <div class="mt-4 flex">
+        <div class="w-[70%]">
+            <label>
+                Description:
+                <input class="w-[80%]" type="text" value="@Description" @onchange="OnDescriptionChanged"/>
+            </label>
+        </div>
+    </div>
+</div>
+
+@code
+{
+    private const string NewStyleSelectionValue = "new";
+
+    private const string UnselectedItemClassString = "bg-zinc-900 text-gray-300";
+    private const string SelectedItemClassString = "bg-zinc-900";
+    private string SelectClassString => Style == null ? UnselectedItemClassString : SelectedItemClassString;
+
+    private Guid _id = Guid.NewGuid();
+    
+    private bool _isNewStyleMode = false;
+    private bool _newStyleModeWasFocused = false;
+
+    private string _newStyleOldValue;
+    private string NewStyleInputId => $"new-style-input-{_id}";
+
+    private IReadOnlySet<string> _globalBeerStyles;
+
+    [Parameter]
+    public string Name { get; set; }
+    [Parameter]
+    public EventCallback<string> NameChanged { get; set; }
+    
+    [Parameter]
+    public string Style { get; set; }
+    [Parameter]
+    public EventCallback<string> StyleChanged { get; set; }
+    
+    [Parameter]
+    public string ThumbnailUrl { get; set; }
+    [Parameter]
+    public EventCallback<string> ThumbnailUrlChanged { get; set; }
+
+    [Parameter]
+    public double Abv { get; set; }
+    [Parameter]
+    public EventCallback<double> AbvChanged { get; set; }
+    
+    [Parameter]
+    public string Description { get; set; }
+    [Parameter]
+    public EventCallback<string> DescriptionChanged { get; set; }
+    
+    [Parameter]
+    public EventCallback PropertyChanged { get; set; }
+
+    public void SetNewStyleMode(bool isNewStyleMode)
+    {
+        _isNewStyleMode = isNewStyleMode;
+        
+        if (!_isNewStyleMode)
+            _newStyleModeWasFocused = false;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _globalBeerStyles = await StyleService.GetStylesAsync();
+        StyleService.StylesUpdated += OnStylesUpdated;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_isNewStyleMode && !_newStyleModeWasFocused)
+        {
+            await JS.InvokeVoidAsync("focusElement", NewStyleInputId);
+            _newStyleModeWasFocused = true;
+        }
+    }
+
+    private async Task OnStylesUpdated()
+    {
+        _globalBeerStyles = await StyleService.GetStylesAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnNameChanged(ChangeEventArgs e)
+    {
+        await NameChanged.InvokeAsync(e?.Value?.ToString());
+        await PropertyChanged.InvokeAsync();
+    }
+
+    private async Task OnStyleChanged(ChangeEventArgs e)
+    {
+        if (e.Value is not string value)
+            return;
+
+        if (!_isNewStyleMode && value == NewStyleSelectionValue)
+        {
+            _isNewStyleMode = true;
+            await StyleChanged.InvokeAsync(string.Empty);
+        }
+        else
+        {
+            // if (_isNewStyleMode)
+            // {
+            //     if (_newStyleOldValue is null)
+            //         StyleService.AddStyle(value);
+            //     else
+            //         StyleService.RenameStyle(_newStyleOldValue, value);
+            //
+            //     _newStyleOldValue = value;
+            // }
+            if (!string.IsNullOrWhiteSpace(value))
+                await StyleChanged.InvokeAsync(value);
+        }
+        
+        if (!string.IsNullOrWhiteSpace(value))
+            await PropertyChanged.InvokeAsync();
+    }
+
+    private async Task OnThumbnailUrlChanged(InputFileChangeEventArgs e)
+    {
+        var thumbnailUrl = await ImageService.UploadThumbnailAsync(ThumbnailUrl, e.File.Name, e.File.OpenReadStream(long.MaxValue));
+
+        await ThumbnailUrlChanged.InvokeAsync(thumbnailUrl);
+        await PropertyChanged.InvokeAsync();
+    }
+
+    private async Task OnAbvChanged(ChangeEventArgs e)
+    {
+        if (double.TryParse(e?.Value?.ToString(), out var result))
+        {
+            await AbvChanged.InvokeAsync(result);
+            await PropertyChanged.InvokeAsync();
+        }
+    }
+
+    private async Task OnDescriptionChanged(ChangeEventArgs e)
+    {
+        await DescriptionChanged.InvokeAsync(e?.Value?.ToString());
+        await PropertyChanged.InvokeAsync();
+    }
+
+}

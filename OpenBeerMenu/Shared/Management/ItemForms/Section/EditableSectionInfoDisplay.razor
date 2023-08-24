@@ -1,0 +1,43 @@
+@using OpenBeerMenu.Data.Entities
+@using OpenBeerMenu.Services
+@inject SectionInfoService SectionInfoService
+
+<div class="mb-4">
+    <SectionInfoForm @bind-Name="Info.Name" @bind-DisplayHeader="Info.ShowHeader" Beers="Info.Beers" BeerAdded="BeerAddedAsync" BeerRemoved="BeerRemovedAsync" BeerPositionsChanged="BeerPositionsChangedAsync" PropertyChanged="PropertyChanged"/>
+</div>
+
+@code
+{
+    [CascadingParameter]
+    public AccordionItem Container { get; set; }
+    
+    [Parameter]
+    public SectionInfo Info { get; set; }
+
+    private async Task PropertyChanged()
+    {
+        await SectionInfoService.UpdateSectionAsync(Info);
+    }
+
+    private async Task BeerAddedAsync(BeerInfo beer)
+    {
+        await SectionInfoService.AddBeerToSectionAsync(Info, beer);
+    }
+
+    private async Task BeerRemovedAsync(BeerInfo beer)
+    {
+        await SectionInfoService.RemoveBeerFromSectionAsync(Info, beer);
+    }
+
+    private async Task BeerPositionsChangedAsync(IList<BeerInfo> beers)
+    {
+        await SectionInfoService.ReorderBeersAsync(Info, beers);
+    }
+
+    private async Task DeleteSectionAsync()
+    {
+        await Container.ToggleOpenAsync();
+        await SectionInfoService.RemoveSectionAsync(Info);
+    }
+
+}

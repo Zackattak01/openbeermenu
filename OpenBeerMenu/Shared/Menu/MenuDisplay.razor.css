@@ -1,0 +1,6 @@
+.menu-container {
+    columns: 2;
+    column-fill: auto;
+    max-height: 90vh;
+    margin-top: 1rem;
+}

@@ -1,0 +1,74 @@
+@page "/manage/beers"
+@using OpenBeerMenu.Data.Entities
+@using OpenBeerMenu.Services
+@using OpenBeerMenu.Types
+@inject BeerInfoService BeerInfoService
+
+<PageTitle>Beers</PageTitle>
+
+<div class="space-y-4">
+    <div class="bg-zinc-900 rounded-lg space-y-2 p-4 w-full">
+        <SearchBar @bind-Query="@_searchQuery"/>
+        <hr class="mx-2 rounded"/>
+        <Accordion>
+            <AccordionItem Id="new" Title="New Beer">
+                <NewBeerForm BeerCreated="BeerCreatedAsync"/>
+            </AccordionItem>
+        </Accordion>
+    </div>
+
+    <div class="bg-zinc-900 rounded-lg p-4 w-full">
+        <Accordion>
+            @foreach (var beer in GetBeersToDisplay())
+            {
+                <AccordionItem Id="@beer.Id.ToString()" Title="@beer.Name" Removeable="true" OnRemoved="OnBeerRemovedAsync">
+                    <EditableBeerInfoDisplay Info="beer" InfoChanged="BeerInfoUpdated"/>
+                </AccordionItem>
+            }
+            
+        </Accordion>
+    </div>
+</div>
+
+@code
+{
+    private IReadOnlyList<BeerInfo> _beers = Array.Empty<BeerInfo>();
+    private string _searchQuery = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _beers = await BeerInfoService.GetBeersAsync();
+        
+        BeerInfoService.BeersUpdated += BeersUpdatedAsync;
+    }
+
+    private IEnumerable<BeerInfo> GetBeersToDisplay() 
+        => string.IsNullOrWhiteSpace(_searchQuery) ? _beers.OrderBy(x => x.Id) : Search.Rank(_searchQuery, _beers, x => x.Name);
+
+    private async Task BeersUpdatedAsync()
+    {
+        _beers = await BeerInfoService.GetBeersAsync();
+        
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task BeerCreatedAsync(BeerInfo beer)
+    {
+        await BeerInfoService.CreateBeerAsync(beer);
+    }
+
+    private async Task BeerInfoUpdated(BeerInfo beer)
+    {
+        await BeerInfoService.UpdateBeerAsync(beer);
+        
+        StateHasChanged();
+    }
+    
+    private async Task OnBeerRemovedAsync(string idStr)
+    {
+        if (!Guid.TryParse(idStr, out var id))
+            throw new ArgumentException("Beer id was not a guid!");
+
+        await BeerInfoService.RemoveBeerAsync(_beers.Single(x => x.Id == id));
+    }
+}

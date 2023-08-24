@@ -1,0 +1,145 @@
+@using OpenBeerMenu.Data.Entities
+@using OpenBeerMenu.Services
+@using OpenBeerMenu.Shared.DragAndDrop
+@using OpenBeerMenu.Shared.Management.ItemForms.Views
+@inject SectionInfoService SectionInfoService
+<div>
+    <div class="flex gap-4">
+        <label>
+            Name:
+            <input type="text" value="@Name" @onchange="OnNameChangedAsync"/>
+        </label>
+    </div>
+    <div class="my-4">
+        <h3 class="text-xl">Sections</h3>
+        <DragAndDropList Items="Sections.Cast<object>().ToList()" PositionsChanged="OnPositionsChangedAsync" ItemRemoved="OnItemRemovedAsync">
+            <DataView>
+                <SectionInfoView/>
+            </DataView>
+        </DragAndDropList>
+        <div class="my-4">
+            <select class="@SelectClassString" @onchange="OnSectionSelectionChanged">
+                @if (_selectedSection is null)
+                {
+                    <option class="hidden" disabled value selected>Select...</option>
+                }
+                @* using the name 'section' here as well also causes the compiler to die *@
+                @foreach (var info in AddableSections)
+                {
+                    <option value="@info.Id">@info.Name</option>
+                }
+            </select>
+            <button class="btn btn-primary" @onclick="AddSectionAsync">Add Section</button>
+        </div>
+    </div>
+</div>
+
+@code
+{
+    private const string UnselectedItemClassString = "bg-zinc-900 text-gray-300";
+    private const string SelectedItemClassString = "bg-zinc-900";
+    private string SelectClassString => _selectedSection is null ? UnselectedItemClassString : SelectedItemClassString;
+
+    private SectionInfo _selectedSection;
+    
+    private IEnumerable<SectionInfo> AddableSections => _allSections.Except(Sections);
+    private IReadOnlyList<SectionInfo> _allSections = Array.Empty<SectionInfo>();
+    
+    [CascadingParameter]
+    public AccordionItem Container { get; set; }
+    
+    [Parameter]
+    public string Name { get; set; }
+    [Parameter]
+    public EventCallback<string> NameChanged { get; set; }
+    
+    [Parameter]
+    public IList<SectionInfo> Sections { get; set; }
+    [Parameter]
+    public EventCallback<IList<SectionInfo>> SectionsChanged { get; set; }
+    [Parameter]
+    public EventCallback<SectionInfo> SectionAdded { get; set; }
+    [Parameter]
+    public EventCallback<SectionInfo> SectionRemoved { get; set; }
+    [Parameter]
+    public EventCallback<IList<SectionInfo>> SectionPositionsChanged { get; set; }
+    
+    [Parameter]
+    public EventCallback PropertyChanged { get; set; }
+    
+    protected override async Task OnInitializedAsync()
+    {
+        _allSections = await SectionInfoService.GetSectionsAsync();
+        
+        SectionInfoService.SectionsUpdated += SectionsUpdatedAsync;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await Container.SetContentHeightAsync();
+    }
+
+    private async Task SectionsUpdatedAsync()
+    {
+        _allSections = await SectionInfoService.GetSectionsAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnNameChangedAsync(ChangeEventArgs e)
+    {
+        if (e.Value is not string value)
+            return;
+
+        await NameChanged.InvokeAsync(value);
+        await PropertyChanged.InvokeAsync();
+    }
+    
+    private async Task OnPositionsChangedAsync(IEnumerable<object> items)
+    {
+        var sections = items.Cast<SectionInfo>().ToList();
+
+        await SectionPositionsChanged.InvokeAsync(sections);
+        
+        await SectionsChanged.InvokeAsync(sections);
+        await PropertyChanged.InvokeAsync();
+    }
+    
+    private async Task OnItemRemovedAsync(object item)
+    {
+        if (item is not SectionInfo section)
+            throw new InvalidOperationException("Item received in an item removed event was not the expected type");
+
+        var sections = Sections.ToList();
+        sections.Remove(section);
+        
+        await SectionRemoved.InvokeAsync(section);
+        await SectionsChanged.InvokeAsync(sections);
+        await PropertyChanged.InvokeAsync();
+    }
+
+    private void OnSectionSelectionChanged(ChangeEventArgs e)
+    {
+        if (!Guid.TryParse(e.Value?.ToString(), out var id))
+            throw new ArgumentException($"The value: {e.Value} is not a guid!");
+        
+        _selectedSection = _allSections.FirstOrDefault(x => x.Id == id);
+
+        if (_selectedSection is null)
+            throw new ArgumentException($"The selected guid: {id} did not match any valid ids!");
+    }
+
+    private async Task AddSectionAsync()
+    {
+        if (_selectedSection is null)
+            return;
+
+        var sections = Sections.ToList();
+        sections.Add(_selectedSection);
+
+        await SectionAdded.InvokeAsync(_selectedSection);
+        await SectionsChanged.InvokeAsync(sections);
+        await PropertyChanged.InvokeAsync();
+        
+        _selectedSection = null;
+    }
+}

@@ -1,0 +1,70 @@
+@using Microsoft.EntityFrameworkCore.ChangeTracking.Internal
+@inject IJSRuntime JS
+
+<div class="grow p-2">
+    <div class="flex group">
+        <button class="flex items-center gap-2 py-2 w-full" @onclick="ToggleOpenAsync">
+            <span class="@ButtonClassString">&#10095;</span>
+            <h3 class="text-xl ml-4">@Title</h3>
+        </button>
+        
+        @if (Removeable)
+        {
+            <button class="p-2 hover:text-red-600 invisible group-hover:visible" @onclick="OnRemovedAsync">&#10006;</button>
+        }
+    </div>
+
+    <div resizeable-content id="@ContentId" class="@ContentClassString">
+        <CascadingValue Value="@this">
+            @ChildContent
+        </CascadingValue>
+
+    </div>
+
+</div>
+
+@code
+{
+    private bool _isOpen = false;
+    
+    private const string ButtonOpenedClassString = "transition-transform duration-300 rotate-90";
+    private const string ButtonClosedClassString = "transition-transform duration-300";
+    private string ButtonClassString => _isOpen ? ButtonOpenedClassString : ButtonClosedClassString;
+        
+    private const string ContentClosedClassString = "max-h-0 px-2 overflow-hidden transition-[max-height] ease-in-out duration-300";
+    private const string ContentOpenedClassString = "overflow-hidden px-2 transition-[max-height] ease-in-out duration-300";
+    private string ContentClassString => _isOpen ? ContentOpenedClassString : ContentClosedClassString;
+
+    private string ContentId => $"content-{Id}";
+
+    [Parameter]
+    public string Id { set; get; }
+
+    [Parameter]
+    public string Title { get; set; }
+    
+    [Parameter]
+    public bool Removeable { get; set; }
+    
+    [Parameter]
+    public EventCallback<string> OnRemoved { get; set; }
+
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    public async Task SetContentHeightAsync()
+    {
+        await JS.InvokeVoidAsync("setContentHeight", ContentId, _isOpen);
+    }
+
+    public async Task ToggleOpenAsync()
+    {
+        _isOpen = !_isOpen;
+        await SetContentHeightAsync();
+    }
+
+    private async Task OnRemovedAsync()
+    {
+        await OnRemoved.InvokeAsync(Id);
+    }
+}

@@ -1,0 +1,155 @@
+@using OpenBeerMenu.Data.Entities
+@using OpenBeerMenu.Services
+@using Microsoft.AspNetCore.StaticFiles
+@inject MenuInfoService MenuInfoService
+@inject ImageService ImageService
+<div class="flex flex-col gap-8">
+    <div>
+        <h2 class="text-2xl mb-2">Identity</h2>
+        <div class="flex gap-4 place-items-end mb-2">
+            <label>
+                <ImageUpload PlaceholderUrl="@LogoUrl" OnChange="LogoChangedAsync"></ImageUpload>
+            </label>
+            <label>
+                <input type="text" value="@Name" @onchange="OnNameChangedAsync" placeholder="Name..."/>
+            </label>
+        </div>
+        @if (!IsFirstTimeSetup)
+        {
+            <label>
+                Display Company Header:
+                <input type="checkbox" checked="@ShowCompanyHeader" @onchange="OnShowCompanyHeaderChangedAsync"/>
+            </label>
+        }
+    </div>
+    <div>
+        <h2 class="text-2xl mb-2">Security</h2>
+        <label>
+            Access Code:
+            <input type="text" class="mb-1" value="@AccessCode" @onchange="OnAccessCodeChangedAsync"/>
+            <p class="text-xs text-gray-300">The code used to access the managment tools</p>
+        </label>
+    </div>
+    
+    
+    @if (!IsFirstTimeSetup)
+    {
+        <div>
+            <label>
+                Default Menu:
+                <select class="@SelectClassString" @onchange="OnMenuSelectionChangedAsync">
+                    @if (DefaultMenu is null)
+                    {
+                        <option class="hidden" disabled value selected>Select...</option>
+                    }
+                    @foreach (var menu in _menus)
+                    {
+                        if (menu.Id == DefaultMenu?.Id)
+                        {
+                            <option selected value="@menu.Id">@menu.Name</option>
+                        }
+                        else
+                        {
+                            <option value="@menu.Id">@menu.Name</option>
+                        }
+                    }
+                </select>
+            </label>
+        </div>
+    }
+</div>
+
+@code
+{
+    private const string UnselectedItemClassString = "bg-zinc-900 text-gray-300";
+    private const string SelectedItemClassString = "bg-zinc-900";
+    private string SelectClassString => DefaultMenu is null ? UnselectedItemClassString : SelectedItemClassString;
+    
+    private IReadOnlyList<MenuInfo> _menus = new List<MenuInfo>();
+
+    [Parameter]
+    public bool IsFirstTimeSetup { get; set; }
+
+    [Parameter]
+    public string Name { get; set; }
+    [Parameter]
+    public EventCallback<string> NameChanged { get; set; }
+    
+    [Parameter]
+    public string LogoUrl { get; set; }
+    [Parameter]
+    public EventCallback<string> LogoUrlChanged { get; set; }
+    
+    [Parameter]
+    public bool ShowCompanyHeader { get; set; }
+    [Parameter]
+    public EventCallback<bool> ShowCompanyHeaderChanged { get; set; }
+
+    [Parameter]
+    public string AccessCode { get; set; }
+    [Parameter]
+    public EventCallback<string> AccessCodeChanged { get; set; }
+
+    [Parameter]
+    public MenuInfo DefaultMenu { get; set; }
+    [Parameter]
+    public EventCallback<MenuInfo> DefaultMenuChanged { get; set; }
+    
+    [Parameter]
+    public EventCallback PropertyChanged { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _menus = await MenuInfoService.GetMenusAsync();
+        MenuInfoService.MenusUpdated += OnMenusUpdatedAsync;
+    }
+
+    private async Task OnMenusUpdatedAsync()
+    {
+        _menus = await MenuInfoService.GetMenusAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnNameChangedAsync(ChangeEventArgs e)
+    {
+        await NameChanged.InvokeAsync(e.Value?.ToString());
+        await PropertyChanged.InvokeAsync();
+    }
+
+    private async Task OnAccessCodeChangedAsync(ChangeEventArgs e)
+    {
+        await AccessCodeChanged.InvokeAsync(e.Value?.ToString());
+        await PropertyChanged.InvokeAsync();
+    }
+
+    private async Task OnMenuSelectionChangedAsync(ChangeEventArgs e)
+    {
+        if (!Guid.TryParse(e.Value?.ToString(), out var id))
+            throw new ArgumentException($"The value: {e.Value} is not a guid!");
+        
+        var selection = _menus.FirstOrDefault(x => x.Id == id);
+        
+        if (selection is null)
+            throw new ArgumentException($"The selected guid: {id} did not match any valid ids!");
+
+        await DefaultMenuChanged.InvokeAsync(selection);
+        await PropertyChanged.InvokeAsync();
+    }
+
+    private async Task LogoChangedAsync(InputFileChangeEventArgs e)
+    {
+        var logoPath = await ImageService.UploadLogoAsync(LogoUrl, e.File.Name, e.File.OpenReadStream(long.MaxValue));
+
+        await LogoUrlChanged.InvokeAsync(logoPath);
+        await PropertyChanged.InvokeAsync();
+    }
+
+    private async Task OnShowCompanyHeaderChangedAsync(ChangeEventArgs e)
+    {
+        if (e.Value is not bool value)
+            return;
+
+        await ShowCompanyHeaderChanged.InvokeAsync(value);
+        await PropertyChanged.InvokeAsync();
+    }
+}

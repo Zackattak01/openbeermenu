@@ -1,0 +1,34 @@
+@using OpenBeerMenu.Data.Entities
+<div class="mb-2 max-w-full">
+    @if (Info.ShowHeader)
+    {
+        <div class="menu-section">
+            <div name="section-header" class="text-center mb-4">
+                <h3 class="text-2xl">@Info.Name</h3>
+                <hr class="rounded w-11/12 m-auto"/>
+            </div>
+            @if (Info.Beers.Count >= 1)
+            {
+                <MenuItemDisplay BeerInfo="Info.Beers.First()"></MenuItemDisplay>
+            }
+        </div>
+        foreach (var beer in Info.Beers.Skip(1))
+        {
+            <MenuItemDisplay BeerInfo="@beer"/>
+        }
+    }
+    else
+    {
+        foreach (var beer in Info.Beers)
+        {
+            <MenuItemDisplay BeerInfo="@beer"/>
+        }
+    }
+    
+    
+</div>
+@code
+{
+    [Parameter]
+    public SectionInfo Info { get; set; }
+}

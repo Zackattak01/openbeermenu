@@ -1,0 +1,45 @@
+@page "/manage/overview"
+@using OpenBeerMenu.Services
+@inject IConfiguration Configuration
+@inject SettingsService SettingsService
+
+<PageTitle>Overview</PageTitle>
+
+<div class="grid grid-flow-col auto-cols-fr gap-4">
+    <div class="grid grid-flow-col rounded-lg bg-zinc-900 p-4 text-right shadow-md">
+        <div>
+            <img src="@_settings?.LogoUrl" class="mr-4 max-h-[120px] aspect-square"/>
+        </div>
+        <div>
+            <h2 class="text-xl">Managing @(_settings?.Name)'s Menu</h2>
+        </div>
+
+    </div>
+    
+    <div class="rounded-lg bg-zinc-900 p-4 shadow-md">        
+        <h2 class="text-xl">Displaying</h2>
+        <p class="text-gray-400">Menu: @(_settings?.DefaultMenu?.Name)</p>
+        <p class="text-gray-400">Sections: @(_settings?.DefaultMenu?.Sections.Count)</p>
+        <p class="text-gray-400">Beers: @(_settings?.DefaultMenu?.Sections.SelectMany(x => x.Beers).Count())</p>
+    </div>
+</div>
+
+
+@code
+{
+    private Data.Entities.Settings _settings;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        _settings = await SettingsService.GetSettingsAsync();
+
+        SettingsService.SettingsUpdated += OnSettingsUpdatedAsync;
+    }
+
+    private async Task OnSettingsUpdatedAsync()
+    {
+        _settings = await SettingsService.GetSettingsAsync();
+        
+        await InvokeAsync(StateHasChanged);
+    }
+}

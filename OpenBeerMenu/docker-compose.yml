@@ -1,0 +1,52 @@
+volumes:
+  data:
+  images:
+
+services:
+  postgres:
+    container_name: postgres
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      - POSTGRES_PASSWORD=postgrespw
+    ports:
+      - 5432:5432
+    volumes:
+      - data:/var/lib/postgresql/data
+  openbeermenu:
+    container_name: openbeermenu
+    image: openbeer/menu
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    ports:
+      - 8080:80
+    volumes:
+      - images:/app/wwwroot/images
+  watchtower:
+    container_name: watchtower
+    image: containrrr/watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: -i 10800 openbeermenu
+  pgbackup:
+    container_name: pgbackup
+    image: prodrigestivill/postgres-backup-local
+    restart: unless-stopped
+    user: postgres:postgres
+    volumes:
+      - /var/opt/pgbackups:/backups
+    links:
+      - postgres
+    depends_on:
+      - postgres
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=openbeermenu
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgrespw
+      - SCHEDULE=@daily
+      - BACKUP_KEEP_DAYS=7
+      - BACKUP_KEEP_WEEKS=4
+      - BACKUP_KEEP_MONTHS=6

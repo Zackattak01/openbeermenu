@@ -1,0 +1,15 @@
+<div class="my-4 flex place-content-center">
+    <input class="mx-2 grow border-2 rounded-lg h-12 p-2" type="search" placeholder="Search..." @oninput="OnQueryChanged" value="@Query"/>
+</div>
+@code
+{
+    [Parameter]
+    public string Query { get; set; }
+    [Parameter]
+    public EventCallback<string> QueryChanged { get; set; }
+
+    private async Task OnQueryChanged(ChangeEventArgs e)
+    {
+        await QueryChanged.InvokeAsync(e?.Value?.ToString());
+    }
+}

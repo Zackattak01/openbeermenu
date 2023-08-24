@@ -1,0 +1,53 @@
+@using OpenBeerMenu.Data
+@using OpenBeerMenu.Data.Entities
+@inject IJSRuntime JSRuntime
+
+
+<div id="@MenuContainerId" class="menu-container h-full max-h-full">
+    <CascadingValue Name="ItemSize" Value="@_imageSize">
+        @foreach (var info in Info.Sections)
+        {
+            <MenuSectionDisplay Info="info"/>
+        }
+    </CascadingValue>
+</div>
+
+
+
+
+@code
+{
+    private const string MenuContainerId = "menu-container";
+
+    private int _imageSize;
+    private int _numOfItems = 0;
+    
+    [Parameter]
+    public MenuInfo Info { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await CalculateItemSizeAsync();
+    }
+
+    public void TriggerSizeCalculation()
+    {
+        _numOfItems = -1;
+        StateHasChanged();
+    }
+
+    private async Task CalculateItemSizeAsync()
+    {
+        var numOfItems = Info.Sections.Sum(x => x.Beers.Count);
+        
+        if (numOfItems != _numOfItems)
+        {
+            _numOfItems = numOfItems;
+            var calculatedSize = (int)await JSRuntime.InvokeAsync<double>("calculateMenuItemImageSize", MenuContainerId, numOfItems);
+            _imageSize = Math.Min(calculatedSize, 96);
+            
+            StateHasChanged();
+        }
+    }
+    
+}

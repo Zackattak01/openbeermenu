@@ -1,0 +1,28 @@
+@using OpenBeerMenu.Data.Entities
+@using OpenBeerMenu.Services
+@inject SectionInfoService SectionInfoService
+
+<div class="flex">
+    <SectionInfoForm @bind-Name="_name" @bind-DisplayHeader="_displayHeader" @bind-Beers="_beers"/>
+    <div class="ml-auto mt-auto">
+        <button class="btn btn-primary" @onclick="CreateSectionAsync">Create Section</button>
+    </div>
+</div>
+
+
+@code
+{
+    private string _name;
+    private bool _displayHeader;
+    private IList<BeerInfo> _beers = new List<BeerInfo>();
+
+    private async Task CreateSectionAsync()
+    {
+        var section = new SectionInfo(_name, _displayHeader, _beers.ToList());
+        await SectionInfoService.CreateSectionAsync(section);
+
+        _name = null;
+        _displayHeader = false;
+        _beers.Clear();
+    }
+}

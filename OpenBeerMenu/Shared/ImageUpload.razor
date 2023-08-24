@@ -1,0 +1,27 @@
+@if (string.IsNullOrEmpty(PlaceholderUrl))
+{
+    <div class="h-24 w-24 rounded-lg bg-[#737373] hover:bg-[#595959] text-white cursor-pointer">
+        <div class="h-full w-full flex flex-col justify-center">
+            <span class="text-center">Upload Image</span>
+        </div>
+    </div>
+}
+else
+{
+    <div class="h-24 w-24 rounded-lg cursor-pointer hover:opacity-50">
+        <div class="h-full w-full">
+            <img alt="Logo" src="@PlaceholderUrl" class="h-full w-full rounded-lg"/>
+        </div>
+    </div>
+}
+<InputFile OnChange="OnChange" accept="image/*"></InputFile>
+
+@code
+{
+    [Parameter]
+    public string PlaceholderUrl { get; set; }
+
+    [Parameter]
+    public EventCallback<InputFileChangeEventArgs> OnChange { get; set; }
+}
+

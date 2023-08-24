@@ -1,0 +1,49 @@
+@using OpenBeerMenu.Shared.Management.ItemForms.Settings
+@using OpenBeerMenu.Services
+@page "/manage/settings/setup"
+@layout MainLayout
+@inject SettingsService SettingsService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Setup</PageTitle>
+
+<div class="mb-4">
+    <h1 class="text-4xl">Welcome To Open Beer Menu!</h1>
+    <h2 class="text-xl">Please take a moment to fill out some required information: </h2>
+</div>
+
+<div class="bg-zinc-900 rounded-lg p-4 w-full flex">
+    <SettingsForm IsFirstTimeSetup="true" @bind-Name="_name" @bind-AccessCode="_accessCode" @bind-LogoUrl="_logoUrl"></SettingsForm>
+    <button class="btn btn-primary mt-auto ml-auto" @onclick="SaveSettingsAsync">Save</button>
+</div>
+
+
+@code
+{
+    private string _name;
+    private string _accessCode;
+    private string _logoUrl;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        if (await SettingsService.CheckSettingsExistAsync())
+        {
+            NavigationManager.NavigateTo("/");
+        }
+    }
+
+    private async Task SaveSettingsAsync()
+    {
+        var settings = new OpenBeerMenu.Data.Entities.Settings
+        {
+            Name = _name,
+            AccessCode = _accessCode,
+            LogoUrl = _logoUrl,
+            ShowCompanyHeader = true 
+        };
+
+        await SettingsService.CreateSettingsAsync(settings);
+
+        NavigationManager.NavigateTo("/");
+    }
+}

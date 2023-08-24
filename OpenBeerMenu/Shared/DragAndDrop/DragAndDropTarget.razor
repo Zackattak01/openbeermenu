@@ -1,0 +1,34 @@
+@using OpenBeerMenu.Types.DragAndDrop
+<div class="relative group" draggable="true" ondragover="event.preventDefault();" @ondragstart="OnDrag" @ondrop="OnDropAsync">
+    <CascadingValue Value="TargetInfo.Data">
+        @ChildContent
+    </CascadingValue>
+    <button class="absolute top-0 bottom-0 right-4 p-2 hover:text-red-600 invisible group-hover:visible" @onclick="OnRemoveAsync">&#10006;</button>
+</div>
+
+@code
+{
+    [CascadingParameter]
+    public DragAndDropList Container { get; set; }
+    
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+    
+    [Parameter]
+    public DragAndDropTargetInfo TargetInfo { get; set; }
+
+    private void OnDrag()
+    {
+        Container.DraggedInfo = TargetInfo;
+    }
+
+    private async Task OnDropAsync()
+    {
+        await Container.OnDropAsync(TargetInfo);
+    }
+
+    private async Task OnRemoveAsync()
+    {
+        await Container.OnRemoveAsync(TargetInfo);
+    }
+}

@@ -1,0 +1,77 @@
+@using OpenBeerMenu.Types.DragAndDrop
+@inject ILogger<DragAndDropList> Logger
+<div>
+    <CascadingValue Value="this">
+        @if (Items is not null)
+        {
+            foreach (var info in _targetInfos)
+            {
+                <DragAndDropTarget TargetInfo="info">
+                    @DataView
+                </DragAndDropTarget>
+            }
+        }
+    </CascadingValue>
+</div>
+
+@code
+{
+    private List<DragAndDropTargetInfo> _targetInfos = new();
+    
+    [Parameter]
+    public RenderFragment DataView { get; set; }
+    
+    [Parameter]
+    public IList<object> Items { get; set; }
+    
+    [Parameter]
+    public EventCallback<IEnumerable<object>> PositionsChanged { get; set; }
+    
+    [Parameter]
+    public EventCallback<object> ItemRemoved { get; set; }
+
+    public DragAndDropTargetInfo DraggedInfo { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        _targetInfos.Clear();
+        foreach (var item in Items)
+        {
+            _targetInfos.Add(new DragAndDropTargetInfo
+            {
+                Id = Guid.NewGuid(),
+                Data = item
+            });
+            
+        }
+    }
+
+    public async Task OnDropAsync(DragAndDropTargetInfo info)
+    {
+        if (DraggedInfo is null)
+        {
+            Logger.LogError("Target registered a drop but no item was registered as being dragged!");
+            return;
+        }
+
+        var originalLocation = _targetInfos.IndexOf(DraggedInfo);
+        var dropLocation = _targetInfos.IndexOf(info);
+
+        _targetInfos.Insert(originalLocation < dropLocation ? dropLocation + 1 : dropLocation, DraggedInfo);
+        
+        _targetInfos.RemoveAt(originalLocation > dropLocation ? originalLocation + 1 : originalLocation);
+        
+        await PositionsChanged.InvokeAsync(_targetInfos.Select(x => x.Data));
+
+        DraggedInfo = null;
+        StateHasChanged();
+    }
+
+    public async Task OnRemoveAsync(DragAndDropTargetInfo info)
+    {
+        _targetInfos.Remove(info);
+        await ItemRemoved.InvokeAsync(info.Data);
+        
+        StateHasChanged();
+    }
+}

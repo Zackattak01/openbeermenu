@@ -1,0 +1,52 @@
+@using OpenBeerMenu.Data.Entities
+@using OpenBeerMenu.Services
+@inject IJSRuntime JS
+@inject ImageService ImageService
+
+<div class="flex">
+    <BeerInfoForm @ref="@_form" @bind-Name="_name" @bind-Style="_beerStyle" @bind-ThumbnailUrl="_thumbnailUrl" @bind-Abv="_abv" @bind-Description="_description"/>
+    <div class="ml-auto mt-auto">
+        <button class="btn btn-primary" @onclick="CreateBeerAsync">Create</button>
+    </div>
+</div>
+
+
+@code
+{
+    private string _name;
+    private string _beerStyle;
+    private string _thumbnailUrl;
+    private double _abv;
+    private string _description;
+
+    private BeerInfoForm _form;
+
+    [Parameter]
+    public EventCallback<BeerInfo> BeerCreated { get; set; }
+
+    private async Task CreateBeerAsync()
+    {
+        if (DataIsValid())
+        {
+            var beer = new BeerInfo(_name, _description, _beerStyle, _thumbnailUrl, _abv);
+            await BeerCreated.InvokeAsync(beer);
+
+            // reset the values
+            _name = null;
+            _description = null;
+            _beerStyle = null;
+            _thumbnailUrl = null;
+            _abv = 0;
+
+            _form.SetNewStyleMode(false);
+        }
+        
+        // TODO: Handle invalid data
+        
+    }
+
+    private bool DataIsValid()
+    {
+        return !string.IsNullOrWhiteSpace(_name) && !string.IsNullOrWhiteSpace(_beerStyle) && _abv >= 0;
+    }
+} 

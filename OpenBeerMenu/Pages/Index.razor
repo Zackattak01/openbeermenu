@@ -1,0 +1,108 @@
+﻿@page "/"
+@layout EmptyLayout
+@using OpenBeerMenu.Shared.Menu
+@using OpenBeerMenu.Data.Entities
+@using OpenBeerMenu.Services
+@inject IJSRuntime Js
+@inject NavigationManager NavigationManager
+@inject SettingsService SettingsService
+@inject MenuInfoService MenuInfoService
+
+<PageTitle>Menu</PageTitle>
+
+@* <div class="grid grid-flow-row h-screen overflow-hidden"> *@
+<div class="flex flex-col h-screen p-4 overflow-hidden">
+    
+    <div class="flex place-items-center">
+        @if (_settings is not null && _settings.ShowCompanyHeader)
+        {
+            <img src="@_settings?.LogoUrl" class="ml-auto mr-4 max-h-24 aspect-square"/>
+            <h1 class="mr-auto text-5xl font-bold text-center self-auto">@_settings?.Name</h1>
+        }
+        @if (!_isFullScreen)
+        {
+            <button class="btn btn-primary m-2" @onclick="DisplayAsync">Display Menu</button>
+            <a class="btn btn-primary m-2" href="/manage/overview">Manage Menu</a>
+        }
+    </div>
+
+    @if (_menu is not null)
+    {
+        <div id="sizing-container" class="flex-none flex-nowrap basis-[90%]">
+            <MenuDisplay @ref="@_menuDisplay" Info="_menu"/>
+        </div>
+
+    }
+</div>
+
+
+@code
+{
+    private bool _isFullScreen;
+    private MenuInfo _menu;
+    private Settings _settings;
+
+    private MenuDisplay _menuDisplay;
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "displayOnLoad")]
+    public bool DisplayOnLoad { get; set; }
+    
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "menuId")]
+    public Guid MenuId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _settings = await SettingsService.GetSettingsAsync();
+        _menu = MenuId == default ? _settings.DefaultMenu : (await MenuInfoService.GetMenusAsync()).FirstOrDefault(x => x.Id == MenuId);
+
+        SettingsService.SettingsUpdated += OnSettingsUpdatedAsync;
+        MenuInfoService.MenusUpdated += OnMenusUpdatedAsync;
+    }
+
+    private async Task OnSettingsUpdatedAsync()
+    {
+        _settings = await SettingsService.GetSettingsAsync();
+
+        if (MenuId == default)
+            _menu = _settings.DefaultMenu;
+        
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnMenusUpdatedAsync()
+    {
+        if (_menu is null)
+            return;
+        
+        _menu = (await MenuInfoService.GetMenusAsync()).FirstOrDefault(x => x.Id == _menu.Id);
+        await InvokeAsync(StateHasChanged);
+        await InvokeAsync(_menuDisplay.TriggerSizeCalculation);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        var dotnetHelper = DotNetObjectReference.Create(this);
+        await Js.InvokeVoidAsync("setDotNetHelper", dotnetHelper);
+
+        if (DisplayOnLoad)
+        {
+            NavigationManager.NavigateTo("/");
+            await DisplayAsync();
+        }
+    }
+
+    [JSInvokable]
+    public void SetFullscreen(bool isFullscreen)
+    {
+        _isFullScreen = isFullscreen;
+        StateHasChanged();
+        _menuDisplay.TriggerSizeCalculation();
+    }
+
+    private async Task DisplayAsync()
+    {
+        await Js.InvokeVoidAsync("enterFullscreen");
+    }
+}

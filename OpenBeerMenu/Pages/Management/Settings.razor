@@ -1,0 +1,37 @@
+@using OpenBeerMenu.Shared.Management.ItemForms.Settings
+@using OpenBeerMenu.Services
+@page "/manage/settings"
+@inject SettingsService SettingsService
+
+<PageTitle>Settings</PageTitle>
+
+<div class="bg-zinc-900 rounded-lg p-4 w-full">
+    @if (_settings is not null)
+    {
+        <SettingsForm @bind-Name="@_settings.Name" @bind-AccessCode="@_settings.AccessCode" @bind-LogoUrl="@_settings.LogoUrl" @bind-ShowCompanyHeader="@_settings.ShowCompanyHeader" @bind-DefaultMenu="@_settings.DefaultMenu" PropertyChanged="PropertyChangedAsync"/>
+    }
+</div>
+
+@code
+{
+    private Data.Entities.Settings _settings;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        _settings = await SettingsService.GetSettingsAsync();
+
+        SettingsService.SettingsUpdated += SettingsUpdatedAsync;
+    }
+
+    private async Task SettingsUpdatedAsync()
+    {
+        _settings = await SettingsService.GetSettingsAsync();
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task PropertyChangedAsync()
+    {
+        await SettingsService.UpdateSettingsAsync(_settings);
+    }
+}
