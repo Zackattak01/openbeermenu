@@ -22,7 +22,8 @@ builder.Host.ConfigureLogging(x =>
             outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}",
             theme: AnsiConsoleTheme.Code)
         .CreateLogger();
-
+    
+    Log.Logger = logger;
     x.AddSerilog(logger, true);
 
     x.Services.Remove(x.Services.First(x => x.ServiceType == typeof(ILogger<>)));
@@ -36,6 +37,7 @@ builder.Services.AddServerSideBlazor();
 var connString = builder.Configuration["Postgres:ConnectionString"];
 builder.Services.AddDbContext<OpenBeerMenuDbContext>(x => x.UseNpgsql(connString).UseSnakeCaseNamingConvention(), ServiceLifetime.Transient);
 
+builder.Services.AddSingleton<HttpClient>();
 builder.Services.AddOpenBeerServices();
 
 var app = builder.Build();
