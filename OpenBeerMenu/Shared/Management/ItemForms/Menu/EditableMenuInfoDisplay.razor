@@ -13,6 +13,9 @@
         <button class="btn btn-primary transition-[width] duration-300" @onclick="CopyUrlAsync">
             Copy Display Url
         </button>
+        <button class="btn btn-primary transition-[width] duration-300" @onclick="CopyIdAsync">
+            Copy Menu ID
+        </button>
         
         @if (!_isDefaultMenu)
         {
@@ -70,17 +73,27 @@
     {
         if (Uri.TryCreate(new Uri(NavigationManager.BaseUri), $"/?menuId={Info.Id}", out var uri))
         {
-            await JS.InvokeVoidAsync("navigator.clipboard.writeText", uri.ToString());
-            _opacityClass = "opacity-100";
-
-            _ = Task.Run(async () =>
-            {
-                await Task.Delay(2500);
-                _opacityClass = "opacity-0";
-                await InvokeAsync(StateHasChanged);
-            });
+            await CopyTextAsync(uri.ToString());
         }
         
+    }
+
+    private async Task CopyIdAsync()
+    {
+        await CopyTextAsync(Info.Id.ToString()); 
+    }
+
+    private async Task CopyTextAsync(string text)
+    {
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", text);
+        _opacityClass = "opacity-100";
+
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(2500);
+            _opacityClass = "opacity-0";
+            await InvokeAsync(StateHasChanged);
+        });
     }
 
     private async Task SetMenuDefaultAsync()
