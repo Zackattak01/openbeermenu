@@ -8,7 +8,7 @@ ENV PATH="$PATH:/root/.dotnet/tools"
 # Install tailwind and the ef tools we need
 RUN if [ "$TARGETPLATFORM" = "linux/amd64" ]; then SUFFIX="x64"; else SUFFIX="arm64"; fi; curl -sLO "https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-$SUFFIX"; chmod +x tailwindcss-linux*; mv tailwindcss-linux* /usr/bin/tailwindcss
 
-RUN dotnet tool install --global dotnet-ef
+RUN dotnet tool install --global dotnet-ef --version 6.*
 
 # Copy everything
 COPY . ./
