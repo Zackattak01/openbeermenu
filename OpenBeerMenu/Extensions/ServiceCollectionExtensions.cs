@@ -17,9 +17,12 @@ namespace OpenBeerMenu.Extensions
                 var lifetimeAttribute = type.GetCustomAttributes().OfType<ServiceLifetimeAttribute>().SingleOrDefault();
 
                 if (type.IsAssignableTo(typeof(IHostedService)))
-                    services.TryAddEnumerable(ServiceDescriptor.Singleton(typeof(IHostedService), type));
-
-                services.Add(new ServiceDescriptor(type, type, lifetimeAttribute?.Lifetime ?? ServiceLifetime.Singleton));
+                {
+                    services.AddSingleton(type);
+                    services.Add(ServiceDescriptor.Singleton(typeof(IHostedService), x => x.GetService(type)));
+                }
+                else
+                    services.Add(new ServiceDescriptor(type, type, lifetimeAttribute?.Lifetime ?? ServiceLifetime.Singleton));
             }
             
             return services;
