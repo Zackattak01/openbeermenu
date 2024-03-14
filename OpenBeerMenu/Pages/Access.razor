@@ -8,7 +8,7 @@
 <h3>Please Authorize To Continue</h3>
 <label>
     Access Code:
-    <input type="text" @bind="_code"/>
+    <input type="text" @bind="_code" @bind:event="oninput" @onkeydown="OnKeyPressDown"/>
 </label>
 <button class="btn btn-primary" @onclick="OnSubmitAsync">Authorize</button>
 <br/>
@@ -37,4 +37,11 @@
         if (await AccessManagementService.TryAuthorizeAsync(_code))
             NavigationManager.NavigateTo(ReturnUrl ?? OverviewUrl);
     }
+
+    private async Task OnKeyPressDown(KeyboardEventArgs e)
+    {
+        if (e.Code == "Enter")
+            await OnSubmitAsync();
+    }
+    
 }
