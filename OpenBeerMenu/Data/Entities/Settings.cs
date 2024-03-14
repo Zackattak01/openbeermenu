@@ -17,5 +17,10 @@ namespace OpenBeerMenu.Data.Entities
         
         public MenuInfo DefaultMenu { get; set; }
         
+        public bool SyncEnabled { get; set; }
+
+        public string SyncUrl { get; set; }
+        
+        public string SyncKey { get; set; }
     }
 }

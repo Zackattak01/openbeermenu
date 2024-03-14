@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using OpenBeerMenu.Data;
@@ -11,9 +12,10 @@ using OpenBeerMenu.Data;
 namespace OpenBeerMenu.Migrations
 {
     [DbContext(typeof(OpenBeerMenuDbContext))]
-    partial class OpenBeerMenuDbContextModelSnapshot : ModelSnapshot
+    [Migration("20230826153435_AddExternalSyncProperties")]
+    partial class AddExternalSyncProperties
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
