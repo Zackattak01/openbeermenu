@@ -3,6 +3,7 @@
 @using Microsoft.AspNetCore.StaticFiles
 @inject MenuInfoService MenuInfoService
 @inject ImageService ImageService
+@inject ExternalSyncService SyncService
 <div class="flex flex-col gap-8">
     <div>
         <h2 class="text-2xl mb-2">Identity</h2>
@@ -56,6 +57,40 @@
                 </select>
             </label>
         </div>
+        
+        <div>
+            <h2 class="text-2xl mb-2">External Sync</h2>
+            <div class="mb-6">
+                <label>
+                    Enabled:
+                    <input type="checkbox" checked="@SyncEnabled" @onchange="OnSyncEnabledChangedAsync"/>
+                </label>
+                @if (SyncEnabled)
+                {
+                    <p>Status: @SyncService.Status.Message</p>
+                    @if (SyncService.Status.IsFailure)
+                    {
+                        <p>Error: @SyncService.Status.Description</p>
+                    }
+                }
+            </div>
+            @if (SyncEnabled)
+            {
+                <div class="space-y-2">
+                    <label class="block">
+                        Sync Url
+                        <input class="w-1/2" type="text" value="@SyncUrl" @onchange="OnSyncUrlChangedAsync" placeholder="Url..."/>
+                    </label>
+
+                    <label class="block">
+                        Sync Key
+                        <input class="w-1/2" type="text w-1/2" value="@SyncKey" @onchange="OnSyncKeyChangedAsync" placeholder="Key..."/>
+                    </label>
+
+                    <button class="btn btn-primary block" @onclick="ForceSyncAsync">Sync Now</button>
+                </div>
+            }
+        </div>
     }
 </div>
 
@@ -94,6 +129,21 @@
     public MenuInfo DefaultMenu { get; set; }
     [Parameter]
     public EventCallback<MenuInfo> DefaultMenuChanged { get; set; }
+    
+    [Parameter]
+    public bool SyncEnabled { get; set; }
+    [Parameter]
+    public EventCallback<bool> SyncEnabledChanged { get; set; }
+    
+    [Parameter]
+    public string SyncUrl { get; set; }
+    [Parameter]
+    public EventCallback<string> SyncUrlChanged { get; set; }
+    
+    [Parameter]
+    public string SyncKey { get; set; }
+    [Parameter]
+    public EventCallback<string> SyncKeyChanged { get; set; }
     
     [Parameter]
     public EventCallback PropertyChanged { get; set; }
@@ -151,5 +201,31 @@
 
         await ShowCompanyHeaderChanged.InvokeAsync(value);
         await PropertyChanged.InvokeAsync();
+    }
+    
+    private async Task OnSyncEnabledChangedAsync(ChangeEventArgs e)
+    {
+        if (e.Value is not bool value)
+            return;
+
+        await SyncEnabledChanged.InvokeAsync(value);
+        await PropertyChanged.InvokeAsync();
+    }
+    
+    private async Task OnSyncUrlChangedAsync(ChangeEventArgs e)
+    {
+        await SyncUrlChanged.InvokeAsync(e.Value?.ToString());
+        await PropertyChanged.InvokeAsync();
+    }
+    
+    private async Task OnSyncKeyChangedAsync(ChangeEventArgs e)
+    {
+        await SyncKeyChanged.InvokeAsync(e.Value?.ToString());
+        await PropertyChanged.InvokeAsync();
+    }
+
+    private async Task ForceSyncAsync()
+    {
+        await SyncService.ForceSyncAsync();
     }
 }

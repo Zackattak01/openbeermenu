@@ -8,7 +8,7 @@
 <div class="bg-zinc-900 rounded-lg p-4 w-full">
     @if (_settings is not null)
     {
-        <SettingsForm @bind-Name="@_settings.Name" @bind-AccessCode="@_settings.AccessCode" @bind-LogoUrl="@_settings.LogoUrl" @bind-ShowCompanyHeader="@_settings.ShowCompanyHeader" @bind-DefaultMenu="@_settings.DefaultMenu" PropertyChanged="PropertyChangedAsync"/>
+        <SettingsForm @bind-Name="@_settings.Name" @bind-AccessCode="@_settings.AccessCode" @bind-LogoUrl="@_settings.LogoUrl" @bind-ShowCompanyHeader="@_settings.ShowCompanyHeader" @bind-DefaultMenu="@_settings.DefaultMenu" @bind-SyncEnabled="@_settings.SyncEnabled" @bind-SyncUrl="@_settings.SyncUrl" @bind-SyncKey="@_settings.SyncKey" PropertyChanged="PropertyChangedAsync"/>
     }
 </div>
 
