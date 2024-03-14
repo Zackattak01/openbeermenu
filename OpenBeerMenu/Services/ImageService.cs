@@ -39,93 +39,84 @@ namespace OpenBeerMenu.Services
         {
             while (true)
             {
-                try
-                {
-                    Logger.LogInformation("Searching for abandoned images...");
-                    
-                    var referencedImages = new HashSet<string>();
-
-                    var beerThumbnails = (await _beerInfoService.GetBeersAsync()).Select(x => x.ThumbnailUrl).Where(x => !string.IsNullOrWhiteSpace(x));
-                    foreach (var beerThumbnail in beerThumbnails)
-                        referencedImages.Add(beerThumbnail);
-
-                    var logo = (await _settingsService.GetSettingsAsync())?.LogoUrl;
-                    
-                    if (!string.IsNullOrWhiteSpace(logo))
-                        referencedImages.Add(logo);
-
-                    var allImages = new HashSet<string>();
-                    
-                    var beerImages = new DirectoryInfo(Path.Combine(_contentRoot, ImagesDirectory, ThumbnailDirectoryPath)).EnumerateFiles().Select(x => x.Name);
-                    foreach (var beerImage in beerImages)
-                    {
-                        var urlPath = Path.Combine(ImagesDirectory, ThumbnailDirectoryPath, beerImage);
-                        allImages.Add(urlPath);
-                    }
-                    
-                    var logoImages = new DirectoryInfo(Path.Combine(_contentRoot, ImagesDirectory, LogoDirectoryPath)).EnumerateFiles().Select(x => x.Name);
-                    foreach (var logoImage in logoImages)
-                    {
-                        var urlPath = Path.Combine(ImagesDirectory, LogoDirectoryPath, logoImage);
-                        allImages.Add(urlPath);
-                    }
-
-                    var deletedImageCount = 0;
-                    foreach (var image in allImages)
-                    {
-                        if (!referencedImages.Contains(image))
-                        {
-                            DeleteImage(image);
-                            deletedImageCount++;
-                        }
-                    }
-                    
-                    Logger.LogInformation("Found and deleted {0} abandoned images.", deletedImageCount);
-                }
-                catch (Exception e)
-                {
-                    Logger.LogError(e, "An error occurred during the image cleanup task's execution.");
-                }
-
+                await CleanupImagesAsync();
                 await Task.Delay(_imageCleanupInterval);
+            }
+        }
+
+        public async Task CleanupImagesAsync()
+        {
+            try
+            {
+                Logger.LogInformation("Searching for abandoned images...");
+                
+                var referencedImages = new HashSet<string>();
+
+                var beerThumbnails = (await _beerInfoService.GetBeersAsync()).Select(x => x.ThumbnailUrl).Where(x => !string.IsNullOrWhiteSpace(x));
+                foreach (var beerThumbnail in beerThumbnails)
+                    referencedImages.Add(beerThumbnail);
+
+                var logo = (await _settingsService.GetSettingsAsync())?.LogoUrl;
+                
+                if (!string.IsNullOrWhiteSpace(logo))
+                    referencedImages.Add(logo);
+
+                var allImages = new HashSet<string>();
+                
+                var beerImages = EnumerateBeerImages().Select(x => x.Name);
+                foreach (var beerImage in beerImages)
+                {
+                    var urlPath = Path.Combine(ImagesDirectory, ThumbnailDirectoryPath, beerImage);
+                    allImages.Add(urlPath);
+                }
+                
+                var logoImages = EnumerateLogoImages().Select(x => x.Name);
+                foreach (var logoImage in logoImages)
+                {
+                    var urlPath = Path.Combine(ImagesDirectory, LogoDirectoryPath, logoImage);
+                    allImages.Add(urlPath);
+                }
+
+                var deletedImageCount = 0;
+                foreach (var image in allImages)
+                {
+                    if (!referencedImages.Contains(image))
+                    {
+                        DeleteImage(image);
+                        deletedImageCount++;
+                    }
+                }
+                
+                Logger.LogInformation("Found and deleted {0} abandoned images.", deletedImageCount);
+            }
+            catch (Exception e)
+            {
+                Logger.LogError(e, "An error occurred during the image cleanup task's execution.");
             }
         }
 
         public async Task<string> UploadLogoAsync(string oldLogoUrl, string newImageName, Stream fileStream)
         {
-            // if (!string.IsNullOrWhiteSpace(oldLogoUrl))
-            // {
-            //     var oldLogoPath = Path.Combine(_contentRoot, oldLogoUrl);
-            //     if (File.Exists(oldLogoPath))
-            //         File.Delete(oldLogoPath);
-            // }
-            //
-            // var contentTypeProvider = new FileExtensionContentTypeProvider();
-            // contentTypeProvider.TryGetContentType()
-            // var path = Path.Combine(_contentRoot, ImagesDirectory, LogoDirectoryPath, newImageName);
-            // await using var fs = new FileStream(path, FileMode.CreateNew);
-            // await fileStream.CopyToAsync(fs);
-            //
-            // return Path.Combine(ImagesDirectory, LogoDirectoryPath, newImageName);
             return await UploadImageAsync(oldLogoUrl, LogoDirectoryPath, newImageName, fileStream);
         }
 
         public async Task<string> UploadThumbnailAsync(string oldThumbnailUrl, string newImageName, Stream fileStream)
         {
-            // if (!string.IsNullOrWhiteSpace(oldThumbnailUrl))
-            // {
-            //     var oldLogoPath = Path.Combine(_contentRoot, oldThumbnailUrl);
-            //     if (File.Exists(oldLogoPath))
-            //         File.Delete(oldLogoPath);
-            // }
-            //
-            // var path = Path.Combine(_contentRoot, ImagesDirectory, ThumbnailDirectoryPath, newImageName);
-            // await using var fs = new FileStream(path, FileMode.CreateNew);
-            // await fileStream.CopyToAsync(fs);
-            //
-            // return Path.Combine(ImagesDirectory, ThumbnailDirectoryPath, newImageName);
             return await UploadImageAsync(oldThumbnailUrl, ThumbnailDirectoryPath, newImageName, fileStream);
         }
+
+        public void DeleteImage(string imageUrl)
+        {
+            var logoPath = Path.Combine(_contentRoot, imageUrl);
+            if (File.Exists(logoPath))
+                File.Delete(logoPath);
+        }
+
+        public IEnumerable<FileInfo> EnumerateBeerImages()
+            => new DirectoryInfo(Path.Combine(_contentRoot, ImagesDirectory, ThumbnailDirectoryPath)).EnumerateFiles();
+
+        public IEnumerable<FileInfo> EnumerateLogoImages()
+            => new DirectoryInfo(Path.Combine(_contentRoot, ImagesDirectory, LogoDirectoryPath)).EnumerateFiles();
 
         private async Task<string> UploadImageAsync(string oldUrl, string subPath, string newImageName, Stream fileStream)
         {
@@ -151,12 +142,6 @@ namespace OpenBeerMenu.Services
             return Path.Combine(ImagesDirectory, subPath, randomName);
         }
 
-        public void DeleteImage(string imageUrl)
-        {
-            var logoPath = Path.Combine(_contentRoot, imageUrl);
-            if (File.Exists(logoPath))
-                File.Delete(logoPath);
-        }
 
         private void EnsureDirectoriesExist()
         {
