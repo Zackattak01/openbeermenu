@@ -1,4 +1,5 @@
 using Serilog;
+using ILogger = Serilog.ILogger;
 
 namespace OpenBeerMenu.Types
 {
@@ -6,6 +7,7 @@ namespace OpenBeerMenu.Types
    {
         private readonly Func<Task> _taskToDelay;
         private readonly int _delay;
+        private readonly ILogger _logger;
         
         private bool _shouldCancel = false;
 
@@ -17,6 +19,8 @@ namespace OpenBeerMenu.Types
         {
             _taskToDelay = taskToDelay;
             _delay = delay;
+            _logger = Log.Logger.ForContext("SourceContext", typeof(DelayedTask).Name);
+            
 
             _ = DelayLoop();
         }
@@ -31,15 +35,16 @@ namespace OpenBeerMenu.Types
                 _cts = new CancellationTokenSource();
                 try
                 {
-                    Console.WriteLine($"Delaying for {_delay} ms");
+                    _logger.Information($"Delaying for {_delay} ms");
                     await Task.Delay(_delay, _cts.Token);
                 }
                 catch (TaskCanceledException)
                 {
-                    System.Console.WriteLine($"Caught with {_shouldCancel}");
                     if (_shouldCancel)
                     {
+                        _logger.Information("Cancelling task");
                         _shouldCancel = false;
+                        IsComplete = true;
                         return;
                     }
                 }
@@ -48,14 +53,14 @@ namespace OpenBeerMenu.Types
             try
             {
 
-                Console.WriteLine($"Executing task");
+                _logger.Information($"Executing task");
                 IsComplete = true;
                 await _taskToDelay();
                 _cts.Dispose();
             }
             catch (Exception e)
             {
-                Log.Logger.Error("A delayed task encountered an error\n{0}", e);
+                _logger.Error("A delayed task encountered an error\n{0}", e);
             }            
         }
 

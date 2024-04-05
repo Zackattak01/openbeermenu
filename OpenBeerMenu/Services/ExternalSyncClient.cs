@@ -100,8 +100,6 @@ namespace OpenBeerMenu.Services
 
         private T DeserializeModel<T>(string content)
         {
-            //content = content.Replace("\\", string.Empty);
-            Console.WriteLine($"Deserializing: {content}");
             return JsonConvert.DeserializeObject<T>(content);
         }
 
